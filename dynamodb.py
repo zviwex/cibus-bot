@@ -28,8 +28,7 @@ def get_user(userid, dynamodb=None):
     if not dynamodb:
         dynamodb = get_resource()
     table = dynamodb.Table('accounts')
-    print("!!")
-    print(userid)
+    
     try:
         response = table.get_item(Key={'userid': userid})
     except ClientError as e:
