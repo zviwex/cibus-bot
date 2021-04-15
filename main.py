@@ -1,28 +1,16 @@
-#!/usr/bin/env python
-# pylint: disable=C0116
+#!/usr/local/bin/python3
 # This program is dedicated to the public domain under the CC0 license.
 import subprocess
 from datetime import time
 import pytz
 import sys
-"""
-Simple Bot to reply to Telegram messages.
-
-First, a few handler functions are defined. Then, those functions are passed to
-the Dispatcher and registered at their respective places.
-Then, the bot is started and runs until we press Ctrl-C on the command line.
-
-Usage:
-Basic Echobot example, repeats messages.
-Press Ctrl-C on the command line or send a signal to the process to stop the
-bot.
-"""
 
 import logging
 import telegram
 from telegram import Update, ForceReply, bot
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
+import dynamodb
 
 # Enable logging
 logging.basicConfig(
@@ -30,7 +18,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-users = []
 
 def run(command):
     return subprocess.check_output(command, shell=True)
@@ -55,62 +42,56 @@ def start(update: Update, context: CallbackContext) -> None:
         reply_markup=ForceReply(selective=True),
     )
 
-    def callback_alarm(context: telegram.ext.CallbackContext):
-        context.bot.send_message(context.job.context, text='Hi This is a daily reminder')
-        idx = -1
-        for user in users:
-            if user[0] == id:
-                break
+def help_command(update: Update, _: CallbackContext) -> None:
+    """Send a message when the command /help is issued."""
+    update.message.reply_text('Help!')
 
-        _, username, password = user
-        
+def cred_command(update: Update, context: CallbackContext) -> None:
+    """Send a message when the command /help is issued."""
+    _, username, password = update.message.text.split()
+    user = str(update.effective_user.id)
+
+    dynamodb.put_user(user, username, password)
+    update.message.reply_text('Cred added!')
+    
+    def callback_alarm(context: telegram.ext.CallbackContext):
+        userid = context.job.context
+        context.bot.send_message(userid, text='Hi This is a daily reminder')
+
+        user = dynamodb.get_user(str(userid))
+        username, password = user['mail'], user['password']
+
         run(f"curl 'https://www.mysodexo.co.il/' -H 'Connection: keep-alive' -H 'Origin: https://www.mysodexo.co.il'  -H 'Content-Type: application/x-www-form-urlencoded'   -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'   -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'   -H 'Referer: https://www.mysodexo.co.il/'   --data-raw '__VIEWSTATE=S7Vca9h0ihqiy4m0asl2ybYgednoCBRZ9t%2Br%2B4Fjm6fePg%2B8BdflxxYWKMLkgZDBM7U6HVq5hwV3NcGHFHEJmdqsslRS8%2FezSInY7pBkOw0JsVgyNU8z5MweyY3Ip7549HoRXfP9OOMwVT3KaO7tAimfsdd2z%2FXlJ%2Fi3Z2kYlJ00xrWeOebc40Z4aLFYhwFZPROR%2FFY%2FEhOlHcu9wKGn1clIc5v3UHhbwDZSQdBWe%2F15giWp5R%2B530U8IBSar9VJyEYvf4dXhfmgkb8%2Bsml5U1n0yEONmgbz6YyNpT930WqnFBrNpe%2FxvwcD3Bo%2BTC9SbCeXzijvcqVFjTt%2B4F%2FbDveDmvtWmq4JnxMkcfqFzH0QSxGVJcnfPnN7bVX4MSMmnXOOSw%3D%3D&__VIEWSTATEGENERATOR=E12A6B22&txtUsr={username}&txtPas={password}&ctl12=&txtPhone=&g-recaptcha-response=&ctl19='   --compressed   --cookie-jar /tmp/cookie")
         state = run("curl 'https://www.mysodexo.co.il/new_ajax_service.aspx?getBdgt=1'  --cookie /tmp/cookie")
-        run('Rm /tmp/cookie')
-        context.bot.send_message(context.job.context, text=f"You have left {state.decode('utf8')} shekels")
+        run('rm /tmp/cookie')
+        context.bot.send_message(userid, text=f"You have left {state.decode('utf8')} shekels")
     chat_id = update.message.chat_id
         
 
     update.message.reply_markdown_v2('Daily reminder has been set\! You\'ll get notified at 10:30 AM daily')
     context.job_queue.run_daily(callback_alarm,context=chat_id, name=str(chat_id),days=(0, 1, 2, 3, 4, 5, 6),time = time(hour = 10, minute = 30, second = 50, tzinfo=pytz.timezone('Asia/Jerusalem')))
 
-def help_command(update: Update, _: CallbackContext) -> None:
-    """Send a message when the command /help is issued."""
-    update.message.reply_text('Help!')
-
-def cred_command(update: Update, _: CallbackContext) -> None:
-    """Send a message when the command /help is issued."""
-    _, username, password = update.message.text.split()
-    user = update.effective_user
-    users.append([user.id, username, password])
-    update.message.reply_text('Cred added!')
 
 
 def stop_command(update: Update, _: CallbackContext) -> None:
     """Send a message when the command /help is issued."""
-    uid = update.effective_user.id
-    idx = -1
-    for i, user in enumerate(users):
-        if user[0] == uid:
-            idx = i
-            break
+    uid = str(update.effective_user.id)
     
-    users.remove(users[i])
+    dynamodb.delete_user(uid)
+
     update.message.reply_text('Removed')
 
 def budget_command(update: Update, _: CallbackContext) -> None:
     """Send a message when the command /help is issued."""
-    uid = update.effective_user.id
-    idx = -1
-    for user in users:
-        if user[0] == uid:
-            break
+    uid = str(update.effective_user.id)
 
-    _, username, password = user
-    
+    user = dynamodb.get_user(uid)
+
+    username, password = user['mail'], user['password']
+    print(user )
     run(f"curl 'https://www.mysodexo.co.il/' -H 'Connection: keep-alive' -H 'Origin: https://www.mysodexo.co.il'  -H 'Content-Type: application/x-www-form-urlencoded'   -H 'User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 11_2_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Safari/537.36'   -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9'   -H 'Referer: https://www.mysodexo.co.il/'   --data-raw '__VIEWSTATE=S7Vca9h0ihqiy4m0asl2ybYgednoCBRZ9t%2Br%2B4Fjm6fePg%2B8BdflxxYWKMLkgZDBM7U6HVq5hwV3NcGHFHEJmdqsslRS8%2FezSInY7pBkOw0JsVgyNU8z5MweyY3Ip7549HoRXfP9OOMwVT3KaO7tAimfsdd2z%2FXlJ%2Fi3Z2kYlJ00xrWeOebc40Z4aLFYhwFZPROR%2FFY%2FEhOlHcu9wKGn1clIc5v3UHhbwDZSQdBWe%2F15giWp5R%2B530U8IBSar9VJyEYvf4dXhfmgkb8%2Bsml5U1n0yEONmgbz6YyNpT930WqnFBrNpe%2FxvwcD3Bo%2BTC9SbCeXzijvcqVFjTt%2B4F%2FbDveDmvtWmq4JnxMkcfqFzH0QSxGVJcnfPnN7bVX4MSMmnXOOSw%3D%3D&__VIEWSTATEGENERATOR=E12A6B22&txtUsr={username}&txtPas={password}&ctl12=&txtPhone=&g-recaptcha-response=&ctl19='   --compressed   --cookie-jar /tmp/cookie")
     state = run("curl 'https://www.mysodexo.co.il/new_ajax_service.aspx?getBdgt=1'  --cookie /tmp/cookie")
-    run('Rm /tmp/cookie')
+    run('rm /tmp/cookie')
     update.message.reply_text(f"You have left {state.decode('utf8')} shekels")
 
 
