@@ -48,6 +48,13 @@ def get_balance(userid):
     username, password = user['mail'], user['password']
 
     return cibus.get_balance(username, password)
+    
+def callback_alarm(context: telegram.ext.CallbackContext):
+    userid = context.job.context
+    context.bot.send_message(userid, text='Hi This is a daily reminder')
+    
+    context.bot.send_message(userid, text=f"You have left {get_balance(userid)} shekels")
+
 
 def cred_command(update: Update, context: CallbackContext) -> None:
     """Send a message when the command /help is issued."""
@@ -56,12 +63,6 @@ def cred_command(update: Update, context: CallbackContext) -> None:
 
     dynamodb.put_user(user, username, password)
     update.message.reply_text('Cred added!')
-    
-    def callback_alarm(context: telegram.ext.CallbackContext):
-        userid = context.job.context
-        context.bot.send_message(userid, text='Hi This is a daily reminder')
-        
-        context.bot.send_message(userid, text=f"You have left {get_balance(userid)} shekels")
 
     chat_id = update.message.chat_id
         
@@ -87,7 +88,11 @@ def budget_command(update: Update, _: CallbackContext) -> None:
 
 def echo(update: Update, _: CallbackContext) -> None:
     """Echo the user message."""
-    update.message.reply_text(update.message.text)
+    update.message.reply_text("What?")
+
+def set_watch(updater):
+    for user in dynamodb.get_users():
+        updater.job_queue.run_daily(callback_alarm, context=user['userid'], name=str(user['userid']),days=(0, 1, 2, 3, 4, 5, 6),time = time(hour = 10, minute = 30, second = 50, tzinfo=pytz.timezone('Asia/Jerusalem')))
 
 
 def main() -> None:
@@ -110,7 +115,9 @@ def main() -> None:
 
     # Start the Bot
     updater.start_polling()
-
+    
+    set_watch(updater)
+    
     # Run the bot until you press Ctrl-C or the process receives SIGINT,
     # SIGTERM or SIGABRT. This should be used most of the time, since
     # start_polling() is non-blocking and will stop the bot gracefully.

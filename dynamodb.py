@@ -34,7 +34,24 @@ def get_user(userid, dynamodb=None):
     except ClientError as e:
         print(e.response['Error']['Message'])
     else:
-        return response['Item']
+        if 'Item' in response:
+            return response['Item']
+        
+        raise Exception(f'user {userid} not exists')
+
+
+
+def get_users(dynamodb=None):
+    if not dynamodb:
+        dynamodb = get_resource()
+    table = dynamodb.Table('accounts')
+    
+    try:
+        response = table.scan()
+    except ClientError as e:
+        print(e.response['Error']['Message'])
+    else:
+        return response['Items']
 
 
 def delete_user(userid, dynamodb=None):
@@ -57,3 +74,6 @@ def delete_user(userid, dynamodb=None):
     else:
         return response
 
+if __name__ == '__main__':
+    print(get_users())
+    print(get_user('a'))
