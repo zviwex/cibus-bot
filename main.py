@@ -4,7 +4,7 @@ from datetime import time
 import pytz
 import sys
 import cibus
-
+import secret
 import logging
 import telegram
 from telegram import Update, ForceReply, bot
@@ -47,7 +47,7 @@ def get_balance(userid):
     user = dynamodb.get_user(str(userid))
     username, password = user['mail'], user['password']
 
-    return cibus.get_balance(username, password)
+    return cibus.get_balance(username, secret.decrypt_password(password))
     
 def callback_alarm(context: telegram.ext.CallbackContext):
     userid = context.job.context
@@ -61,7 +61,7 @@ def cred_command(update: Update, context: CallbackContext) -> None:
     _, username, password = update.message.text.split()
     user = str(update.effective_user.id)
 
-    dynamodb.put_user(user, username, password)
+    dynamodb.put_user(user, username, secret.encrypt_password(password))
     update.message.reply_text('Cred added!')
 
     chat_id = update.message.chat_id

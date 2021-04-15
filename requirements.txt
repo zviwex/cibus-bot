@@ -2,3 +2,4 @@ pytz
 python-telegram-bot
 boto3
 requests
+cryptography
