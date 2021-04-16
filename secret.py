@@ -1,5 +1,5 @@
 # Use this code snippet in your app.
-# If you need more information about configurations or implementing the sample code, visit the AWS docs:   
+# If you need more information about configurations or implementing the sample code, visit the AWS docs:
 # https://aws.amazon.com/developers/getting-started/python/
 
 import boto3
@@ -57,13 +57,15 @@ def _get_secret():
             return get_secret_value_response['SecretString']
         else:
             return base64.b64decode(get_secret_value_response['SecretBinary'])
-            
-    # Your code goes here. 
+
+    # Your code goes here.
+
 
 def get_secret():
     secret = json.loads(_get_secret())['Key']
     # secret = base64.b64decode(secret)
     return secret
+
 
 def decrypt_password(password):
     key = get_secret()
@@ -71,11 +73,13 @@ def decrypt_password(password):
     ciphered_text = cipher_suite.decrypt(password.encode())
     return ciphered_text.decode()
 
+
 def encrypt_password(enc_password):
     key = get_secret()
     cipher_suite = Fernet(key)
     ciphered_text = cipher_suite.encrypt(enc_password.encode())
     return ciphered_text.decode()
+
 
 if __name__ == '__main__':
     print(decrypt_password(encrypt_password(b"mypassword")))

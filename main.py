@@ -1,26 +1,14 @@
 #!/usr/local/bin/python3
-# This program is dedicated to the public domain under the CC0 license.
 from datetime import time
 import pytz
 import sys
 import cibus
-import secret
-import logging
 import telegram
-from telegram import Update, ForceReply, bot
+from telegram import Update, ForceReply
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 
 import dynamodb
-
-# Enable logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
-)
-
-logger = logging.getLogger(__name__)
-
-# Define a few command handlers. These usually take the two arguments update and
-# context.
+import secret
 
 
 def start(update: Update, context: CallbackContext) -> None:
