@@ -12,7 +12,7 @@ import secret
 
 
 def start(update: Update, context: CallbackContext) -> None:
-    """Send a message when the command /start is issued."""
+    'Send a message when the command /start is issued.'
     user = update.effective_user
     update.message.reply_markdown_v2(
         fr'Hi {user.mention_markdown_v2()}\!',
@@ -20,6 +20,10 @@ def start(update: Update, context: CallbackContext) -> None:
     update.message.reply_markdown_v2(
         fr'Lets save your creds to cibus',
     )
+
+    # Sience this is a POC, the implementation is not includes a secure way 
+    # to pass the credentialas.
+    # If you're interested in such feature please open an issue on github
     update.message.reply_markdown_v2(
         fr'Note that is REALLY\!\!\! unsafe, do it only if you don\'t give a shit about your password',
     )
@@ -31,7 +35,7 @@ def start(update: Update, context: CallbackContext) -> None:
 
 
 def help_command(update: Update, _: CallbackContext) -> None:
-    """Send a message when the command /help is issued."""
+    'Send a message when the command /help is issued.'
     update.message.reply_text('Help!')
 
 
@@ -52,7 +56,7 @@ def callback_alarm(context: telegram.ext.CallbackContext):
 
 
 def cred_command(update: Update, context: CallbackContext) -> None:
-    """Send a message when the command /help is issued."""
+    'Send a message when the command /help is issued.'
     _, username, password = update.message.text.split()
     user = str(update.effective_user.id)
 
@@ -64,7 +68,7 @@ def cred_command(update: Update, context: CallbackContext) -> None:
 
 
 def stop_command(update: Update, _: CallbackContext) -> None:
-    """Send a message when the command /help is issued."""
+    'Send a message when the command /help is issued.'
     uid = str(update.effective_user.id)
 
     dynamodb.delete_user(uid)
@@ -73,14 +77,14 @@ def stop_command(update: Update, _: CallbackContext) -> None:
 
 
 def budget_command(update: Update, _: CallbackContext) -> None:
-    """Send a message when the command /help is issued."""
+    'Send a message when the command /help is issued.'
     userid = str(update.effective_user.id)
 
     update.message.reply_text(f"You have left {get_balance(userid)} shekels")
 
 
 def echo(update: Update, _: CallbackContext) -> None:
-    """Echo the user message."""
+    'Echo the user message.'
     update.message.reply_text("What?")
 
 
@@ -90,7 +94,7 @@ def set_watch(updater):
 
 
 def main() -> None:
-    """Start the bot."""
+    'Start the bot.'
     # Create the Updater and pass it your bot's token.
     updater = Updater(sys.argv[1])
 

@@ -6,10 +6,8 @@ my_config = Config(
     region_name='us-east-1',
 )
 
-
 def get_resource():
     return boto3.resource('dynamodb', config=my_config)
-
 
 def put_user(userid, mail, password, dynamodb=None):
     if not dynamodb:

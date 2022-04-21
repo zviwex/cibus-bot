@@ -3,8 +3,6 @@ import requests
 import sys
 import re
 
-from telegram import user
- 
  
 def isemail(email):
     regex = '^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$'
